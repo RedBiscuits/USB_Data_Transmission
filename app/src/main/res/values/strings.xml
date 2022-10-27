@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">ODC_Task</string>
+    <string name="local_prompt"><![CDATA[host> ]]></string>
+    <string name="info_text">Please plug-in some Android-device into USB that has the Accessory2Accessory device app installed</string>
+
+</resources>
