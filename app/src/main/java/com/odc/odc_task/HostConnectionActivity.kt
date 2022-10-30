@@ -7,8 +7,8 @@ import android.hardware.usb.UsbDeviceConnection
 import android.hardware.usb.UsbManager
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
-import com.odc.odc_task.utils.FROM_GUEST_ACTIVITY
-import com.odc.odc_task.utils.FROM_HOST_ACTIVITY
+import com.odc.odc_task.utils.GUEST_ACTIVITY
+import com.odc.odc_task.utils.HOST_ACTIVITY
 import com.odc.odc_task.utils.TYPE
 import com.odc.odc_task.utils.USB_TIMEOUT_IN_MS
 
@@ -24,7 +24,7 @@ class HostConnectionActivity : AppCompatActivity() {
         val deviceList = mUsbManager?.deviceList
         if (deviceList == null || deviceList.size == 0) {
             val intent = Intent(this, BaseChatActivity::class.java)
-            intent.putExtra(TYPE , FROM_GUEST_ACTIVITY)
+            intent.putExtra(TYPE , GUEST_ACTIVITY)
             startActivity(intent)
             finish()
             return
@@ -46,7 +46,7 @@ class HostConnectionActivity : AppCompatActivity() {
             if (isUsbAccessory(device)) {
                 val intent = Intent(this, BaseChatActivity::class.java)
                 intent.putExtra(DEVICE_EXTRA_KEY, device)
-                intent.putExtra(TYPE , FROM_HOST_ACTIVITY)
+                intent.putExtra(TYPE , HOST_ACTIVITY)
                 startActivity(intent)
                 finish()
                 return true

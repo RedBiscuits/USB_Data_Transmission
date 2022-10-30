@@ -5,6 +5,6 @@ import java.lang.Boolean.TRUE
 
 const val USB_TIMEOUT_IN_MS = 100
 const val BUFFER_SIZE_IN_BYTES = 256
-val FROM_HOST_ACTIVITY: Boolean = TRUE
-val FROM_GUEST_ACTIVITY: Boolean = FALSE
+val HOST_ACTIVITY: Boolean = TRUE
+val GUEST_ACTIVITY: Boolean = FALSE
 const val TYPE = "type"
