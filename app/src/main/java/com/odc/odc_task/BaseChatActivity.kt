@@ -98,8 +98,10 @@ class BaseChatActivity : AppCompatActivity() {
             override fun onReceive(payload: ByteArray?, length: Int) {
                 val stringReceived = String(payload!!, 0, length)
                 printLineToUI("Device> $stringReceived")
-                gameUpdate(stringReceived)
-                gameContinue(images)
+                runOnUiThread {
+                    gameUpdate(stringReceived)
+                    gameContinue(images)
+                }
             }
 
             override fun onError(msg: String?) {
@@ -295,8 +297,10 @@ class BaseChatActivity : AppCompatActivity() {
                     if (bytesTransferred > 0) {
                         val stringReceived = String(buff, 0, bytesTransferred)
                         printLineToUI("device> $stringReceived")
-                        gameUpdate(stringReceived)
-                        gameContinue(images)
+                        runOnUiThread {
+                            gameUpdate(stringReceived)
+                            gameContinue(images)
+                        }
                     }
                     synchronized(sendBuffer) {
                         if (sendBuffer.size > 0) {
