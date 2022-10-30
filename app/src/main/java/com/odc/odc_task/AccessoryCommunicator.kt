@@ -11,13 +11,16 @@ import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.IOException
 
-abstract class AccessoryCommunicator(private val context: Context) {
+abstract class AccessoryCommunicator(context: Context) {
+    // Accessory communicator vars
     private val usbManager: UsbManager
     private var sendHandler: Handler? = null
     private var fileDescriptor: ParcelFileDescriptor? = null
     private var inStream: FileInputStream? = null
     private var outStream: FileOutputStream? = null
     private var running = false
+
+    // Guided by an answer on github forums
     fun send(payload: ByteArray?) {
         if (sendHandler != null) {
             val msg = sendHandler!!.obtainMessage()
@@ -34,6 +37,8 @@ abstract class AccessoryCommunicator(private val context: Context) {
     abstract fun onError(msg: String?)
     abstract fun onConnected()
     abstract fun onDisconnected()
+
+    // Multithreaded class to handle msgs and errors at background
     private inner class CommunicationThread : Thread() {
         override fun run() {
             running = true
@@ -55,6 +60,7 @@ abstract class AccessoryCommunicator(private val context: Context) {
         }
     }
 
+    // Opens connection with accessory
     private fun openAccessory(accessory: UsbAccessory) {
         fileDescriptor = usbManager.openAccessory(accessory)
         if (fileDescriptor != null) {
@@ -77,6 +83,7 @@ abstract class AccessoryCommunicator(private val context: Context) {
         }
     }
 
+    // Terminating connections with accessory to avoid mem leak
     fun closeAccessory() {
         running = false
         try {
@@ -90,6 +97,7 @@ abstract class AccessoryCommunicator(private val context: Context) {
         onDisconnected()
     }
 
+    // initializing variables
     init {
         usbManager = context.getSystemService(Context.USB_SERVICE) as UsbManager
         val accessoryList = usbManager.accessoryList

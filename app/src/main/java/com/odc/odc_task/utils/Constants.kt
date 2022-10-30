@@ -8,3 +8,4 @@ const val BUFFER_SIZE_IN_BYTES = 256
 val HOST_ACTIVITY: Boolean = TRUE
 val GUEST_ACTIVITY: Boolean = FALSE
 const val TYPE = "type"
+const val DEVICE_EXTRA_KEY = "device"

@@ -7,20 +7,16 @@ import android.hardware.usb.UsbEndpoint
 import android.hardware.usb.UsbManager
 import android.os.Bundle
 import android.view.View
-import android.widget.Button
-import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import com.odc.odc_task.utils.BUFFER_SIZE_IN_BYTES
-import com.odc.odc_task.utils.HOST_ACTIVITY
-import com.odc.odc_task.utils.TYPE
-import com.odc.odc_task.utils.USB_TIMEOUT_IN_MS
+import com.odc.odc_task.utils.*
 import java.util.concurrent.atomic.AtomicBoolean
 
 
-class BaseChatActivity : AppCompatActivity() {
+class GameActivity : AppCompatActivity() {
 
+    // Game variables
     private var gameActive = true
     private var activePlayer = 0
     private var gameState = intArrayOf(2, 2, 2, 2, 2, 2, 2, 2, 2)
@@ -49,6 +45,7 @@ class BaseChatActivity : AppCompatActivity() {
         )
     }
 
+    // Connection variables
     private var communicator: AccessoryCommunicator? = null
     private val keepThreadAlive = AtomicBoolean(true)
     private val sendBuffer: MutableList<String> = ArrayList()
@@ -56,34 +53,26 @@ class BaseChatActivity : AppCompatActivity() {
     private val contentTextView: TextView by lazy {
         findViewById(R.id.content_text)
     }
-//    private val input: EditText by lazy {
-//        findViewById(R.id.input_edittext)
-//    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_base_chat)
 
-//        val send = findViewById<Button>(R.id.send_button)
         ownerFlag = intent.getBooleanExtra(TYPE, false)
 
+        // Choosing the object based on device role
         if (ownerFlag == HOST_ACTIVITY) {
             Thread(CommunicationRunnable()).start()
+//            CommunicationCoroutine().launch()
         } else {
             accessoryCommunication()
             gamePause(images)
         }
-//        send.setOnClickListener {
-//            val inputString = input.text.toString()
-//            if (inputString.isNotEmpty()) {
-//                sendString(inputString)
-//                printLineToUI(getString(R.string.local_prompt) + inputString)
-//                input.setText("")
-//            }
-//        }
+
     }
 
 
+    // Sending payload based on device role
     private fun sendString(string: String?) {
         if (ownerFlag == HOST_ACTIVITY) {
             sendBuffer.add(string!!)
@@ -93,11 +82,14 @@ class BaseChatActivity : AppCompatActivity() {
     }
 
 
+    // initializing accessory
     private fun accessoryCommunication() {
         communicator = object : AccessoryCommunicator(this) {
+
+            // On tag received updates the UI and enables play
             override fun onReceive(payload: ByteArray?, length: Int) {
                 val stringReceived = String(payload!!, 0, length)
-                printLineToUI("Device> $stringReceived")
+                printLineToUI("Host> $stringReceived")
                 runOnUiThread {
                     gameUpdate(stringReceived)
                     gameContinue(images)
@@ -118,6 +110,8 @@ class BaseChatActivity : AppCompatActivity() {
         }
     }
 
+    // Displaying the tapped box
+    // for testing and debugging purposes
     private fun printLineToUI(line: String) {
         runOnUiThread {
             contentTextView.text = """
@@ -128,81 +122,53 @@ class BaseChatActivity : AppCompatActivity() {
     }
 
 
+    // Freeing the thread to avoid memory leaks
     override fun onStop() {
         super.onStop()
         keepThreadAlive.set(false)
     }
 
-    // this function will be called every time a
-    // players tap in an empty box of the grid
+    // On image click
     fun playerTap(view: View) {
         val img = view as ImageView
         val tappedImage = img.tag.toString().toInt()
 
-        // game reset function will be called
-        // if someone wins or the boxes are full
-        if (!gameActive) {
-            gameReset(view)
-        }
-
-        // if the tapped image is empty
+        // Check if the tapped box is not selected
+        // then handles game logic
         if (gameState[tappedImage] == 2) {
-            // increase the counter
-            // after every tap
             counter++
-
-            // check if its the last box
-            if (counter == 9) {
-                // reset the game
-                gameActive = false
-            }
-
-            // mark this position
             gameState[tappedImage] = activePlayer
-
-            // this will give a motion
-            // effect to the image
             img.translationY = -1000f
 
-            // change the active player
-            // 0 host and 1 guest
-            // from 0 to 1 or 1 to 0
             if (activePlayer == 0) {
                 // set the image of x
                 img.setImageResource(R.drawable.x_png)
                 activePlayer = 1
                 val status = findViewById<TextView>(R.id.status)
-                // change the status
+                gamePause(images)
                 status.text = "O's Turn - Tap to play"
             } else {
-                // set the image of o
                 img.setImageResource(R.drawable.o_png)
                 activePlayer = 0
                 val status = findViewById<TextView>(R.id.status)
-
-                // change the status
+                gamePause(images)
                 status.text = "X's Turn - Tap to play"
             }
             sendString(img.tag.toString())
-            gamePause(images)
             img.animate().translationYBy(1000f).duration = 300
         }
         var flag1 = 0
-        // Check if any player has won
+
+        //Checking for winners
         for (winPosition in winPositions) {
             if (gameState[winPosition[0]] == gameState[winPosition[1]] && gameState[winPosition[1]] == gameState[winPosition[2]] && gameState[winPosition[0]] != 2) {
                 flag1 = 1
-
-                // Somebody has won! - Find out who!
-
-                // game reset function be called
-                gameActive = false
                 val winnerStr: String = if (gameState[winPosition[0]] == 0) {
-                    "X has won"
-                } else {
-                    "O has won"
+                    "X won"
+                    } else {
+                    "O won"
                 }
-                // Update the status bar for winner announcement
+                gamePause(images)
                 val status = findViewById<TextView>(R.id.status)
                 status.text = winnerStr
             }
@@ -210,12 +176,14 @@ class BaseChatActivity : AppCompatActivity() {
         // set the status if the match draw
         if (counter == 9 && flag1 == 0) {
             val status = findViewById<TextView>(R.id.status)
-            status.text = "Match Draw"
+            status.text = "Draw"
         }
+
     }
 
 
-    private fun gameReset(view: View?) {
+    // Starting the game over again
+    fun gameReset(view: View) {
         gameActive = true
         activePlayer = 0
         for (i in gameState.indices) {
@@ -229,18 +197,21 @@ class BaseChatActivity : AppCompatActivity() {
         status.text = "X's Turn - Tap to play"
     }
 
+    // Disabling clicks on images
     private fun gamePause(images: Array<ImageView>) {
         for (img in images) {
             img.isEnabled = false
         }
     }
 
+    // Enabling clicks on images
     private fun gameContinue(images: Array<ImageView>) {
         for (img in images) {
             img.isEnabled = true
         }
     }
 
+    // Update box by tag
     private fun gameUpdate(string: String) {
         for (img in images) {
             if (img.tag.toString() == string) {
@@ -249,11 +220,12 @@ class BaseChatActivity : AppCompatActivity() {
         }
     }
 
+
     private inner class CommunicationRunnable : Runnable {
         override fun run() {
             val usbManager = getSystemService(Context.USB_SERVICE) as UsbManager
             val device: UsbDevice? =
-                intent.getParcelableExtra(HostConnectionActivity.DEVICE_EXTRA_KEY)
+                intent.getParcelableExtra(DEVICE_EXTRA_KEY)
             var endpointIn: UsbEndpoint? = null
             var endpointOut: UsbEndpoint? = null
             val usbInterface = device?.getInterface(0)
@@ -322,4 +294,89 @@ class BaseChatActivity : AppCompatActivity() {
         }
     }
 
+
 }
+
+/*
+*       Coroutines instead of threads for light weight performance
+* */
+
+//    private inner class CommunicationCoroutine :CoroutineScope{
+//        override val coroutineContext: CoroutineContext
+//            get() = EmptyCoroutineContext
+//
+//        fun launch(){
+//            coroutineContext.run {
+//                launch {
+//                    val usbManager = getSystemService(Context.USB_SERVICE) as UsbManager
+//                    val device: UsbDevice? =
+//                        intent.getParcelableExtra(HostConnectionActivity.DEVICE_EXTRA_KEY)
+//                    var endpointIn: UsbEndpoint? = null
+//                    var endpointOut: UsbEndpoint? = null
+//                    val usbInterface = device?.getInterface(0)
+//                    for (i in 0 until device?.getInterface(0)!!.endpointCount) {
+//                        val endpoint = device.getInterface(0).getEndpoint(i)
+//                        if (endpoint.direction == UsbConstants.USB_DIR_IN) {
+//                            endpointIn = endpoint
+//                        }
+//                        if (endpoint.direction == UsbConstants.USB_DIR_OUT) {
+//                            endpointOut = endpoint
+//                        }
+//                    }
+//                    if (endpointIn == null) {
+//                        printLineToUI("Input Endpoint not found")
+//                        cancel()
+//                    }
+//                    if (endpointOut == null) {
+//                        printLineToUI("Output Endpoint not found")
+//                        cancel()
+//                    }
+//                    val connection = usbManager.openDevice(device)
+//                    if (connection == null) {
+//                        printLineToUI("Could not open device")
+//                        cancel()
+//                    }
+//                    val claimResult = connection.claimInterface(usbInterface, true)
+//                    if (!claimResult) {
+//                        printLineToUI("Could not claim device")
+//                    } else {
+//                        val buff = ByteArray(BUFFER_SIZE_IN_BYTES)
+//                        printLineToUI("Claimed interface - ready to communicate")
+//                        while (keepThreadAlive.get()) {
+//                            val bytesTransferred = connection.bulkTransfer(
+//                                endpointIn,
+//                                buff,
+//                                buff.size,
+//                                USB_TIMEOUT_IN_MS
+//                            )
+//                            if (bytesTransferred > 0) {
+//                                val stringReceived = String(buff, 0, bytesTransferred)
+//                                printLineToUI("device> $stringReceived")
+//                                withContext(Dispatchers.Main) {
+//                                    gameUpdate(stringReceived)
+//                                    gameContinue(images)
+//                                }
+//                            }
+//                            synchronized(sendBuffer) {
+//                                if (sendBuffer.size > 0) {
+//                                    val sendBuff =
+//                                        sendBuffer[0].toByteArray()
+//                                    connection.bulkTransfer(
+//                                        endpointOut,
+//                                        sendBuff,
+//                                        sendBuff.size,
+//                                        USB_TIMEOUT_IN_MS
+//                                    )
+//                                    sendBuffer.removeAt(0)
+//                                }
+//                            }
+//                        }
+//                    }
+//                    connection.releaseInterface(usbInterface)
+//                    connection.close()
+//
+//                }
+//            }
+//        }
+//
+//    }
